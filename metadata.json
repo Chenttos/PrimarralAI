@@ -1,0 +1,8 @@
+{
+  "name": "PrimarralAI",
+  "description": "Uma plataforma de estudo inteligente que transforma suas fotos de cadernos e livros em resumos, quizzes e materiais de revisão automáticos utilizando a inteligência artificial do Gemini.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
