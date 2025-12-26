@@ -14,11 +14,11 @@ import {
   Info,
   Globe
 } from 'lucide-react';
-import { StudyImage, StudyMode, AnalysisResult, Language } from './types';
-import * as gemini from './services/geminiService';
-import FileUpload from './components/FileUpload';
-import StudyResult from './components/StudyResult';
-import DeveloperModal from './components/DeveloperModal';
+import { StudyImage, StudyMode, AnalysisResult, Language } from './types.ts';
+import * as gemini from './services/geminiService.ts';
+import FileUpload from './components/FileUpload.tsx';
+import StudyResult from './components/StudyResult.tsx';
+import DeveloperModal from './components/DeveloperModal.tsx';
 
 const translations = {
   pt: {
