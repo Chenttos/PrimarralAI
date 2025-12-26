@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Github, Chrome, Loader2, ShieldCheck, Mail, Lock, ArrowRight, AlertCircle, UserPlus, Sparkles, Cloud } from 'lucide-react';
+import { X, Loader2, ShieldCheck, Mail, Lock, ArrowRight, AlertCircle, UserPlus, Cloud } from 'lucide-react';
 import { Language, User, StoredAccount } from '../types';
 import * as cloud from '../services/cloudStore';
 
@@ -31,7 +31,7 @@ const translations = {
     errorWrongPassword: "Senha incorreta.",
     errorSignup: "Este e-mail já está em uso. Tente fazer login.",
     errorEmpty: "Preencha todos os campos corretamente.",
-    errorBanned: "Este e-mail foi banido da plataforma por violar os termos."
+    errorBanned: "Este e-mail foi banido da plataforma por violar os termos de uso."
   },
   en: {
     title: "Access Global Account",
@@ -49,7 +49,7 @@ const translations = {
     errorWrongPassword: "Incorrect password.",
     errorSignup: "This email is already in use. Try logging in.",
     errorEmpty: "Please fill in all fields correctly.",
-    errorBanned: "This email has been banned from the platform for violating terms."
+    errorBanned: "This email has been banned from the platform for violating terms of use."
   }
 };
 
@@ -77,8 +77,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, isDar
       return;
     }
 
-    // Ban Check
-    if (cleanEmail === BANNED_EMAIL) {
+    if (cleanEmail === BANNED_EMAIL.toLowerCase()) {
       setError(t.errorBanned);
       return;
     }
@@ -106,7 +105,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, isDar
           preferences: foundUser.preferences
         });
       } else {
-        // Validação estrita de e-mail existente antes de criar
         const emailExists = accounts.some(u => u.email.toLowerCase().trim() === cleanEmail);
         
         if (emailExists) {
@@ -144,53 +142,53 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, isDar
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={onClose} />
-      <div className={`relative w-full max-w-sm overflow-hidden rounded-[2.5rem] shadow-2xl transition-colors ${isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xl" onClick={onClose} />
+      <div className={`relative w-full max-w-sm overflow-hidden rounded-[2.5rem] shadow-2xl animate-scale-in transition-colors ${isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
         <div className="p-8">
           <div className="flex justify-end mb-2">
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-500/10"><X className="w-5 h-5" /></button>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-500/10 transition-colors"><X className="w-5 h-5" /></button>
           </div>
           <div className="space-y-6 text-center">
-            <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-500/20">
-              <Cloud className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-indigo-500/30 animate-float">
+              <Cloud className="w-10 h-10 text-white" />
             </div>
-            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.title}</h3>
-            <p className="text-sm text-slate-500">{t.subtitle}</p>
+            <h3 className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.title}</h3>
+            <p className="text-sm text-slate-500 font-medium">{t.subtitle}</p>
 
-            <div className={`flex p-1 rounded-xl ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-              <button onClick={() => { setView('login'); setError(null); }} className={`flex-1 py-2 text-sm font-bold rounded-lg ${view === 'login' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500'}`}>{t.loginTab}</button>
-              <button onClick={() => { setView('signup'); setError(null); }} className={`flex-1 py-2 text-sm font-bold rounded-lg ${view === 'signup' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500'}`}>{t.signupTab}</button>
+            <div className={`flex p-1.5 rounded-2xl ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+              <button onClick={() => { setView('login'); setError(null); }} className={`flex-1 py-2 text-sm font-black rounded-xl transition-all ${view === 'login' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-400'}`}>{t.loginTab}</button>
+              <button onClick={() => { setView('signup'); setError(null); }} className={`flex-1 py-2 text-sm font-black rounded-xl transition-all ${view === 'signup' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-400'}`}>{t.signupTab}</button>
             </div>
 
-            <form onSubmit={handleAuth} className="space-y-3 text-left">
+            <form onSubmit={handleAuth} className="space-y-4 text-left">
               {view === 'signup' && (
-                <div className="relative">
-                  <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder={t.namePlaceholder} className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 outline-none focus:border-indigo-500 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} />
+                <div className="group relative">
+                  <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-500 transition-colors" />
+                  <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder={t.namePlaceholder} className={`w-full pl-11 pr-4 py-4 rounded-2xl border-2 outline-none focus:border-indigo-500 transition-all ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} />
                 </div>
               )}
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder={t.emailPlaceholder} className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 outline-none focus:border-indigo-500 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} />
+              <div className="group relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-500 transition-colors" />
+                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder={t.emailPlaceholder} className={`w-full pl-11 pr-4 py-4 rounded-2xl border-2 outline-none focus:border-indigo-500 transition-all ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} />
               </div>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder={t.passwordPlaceholder} className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 outline-none focus:border-indigo-500 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} />
+              <div className="group relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-500 transition-colors" />
+                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder={t.passwordPlaceholder} className={`w-full pl-11 pr-4 py-4 rounded-2xl border-2 outline-none focus:border-indigo-500 transition-all ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} />
               </div>
               {error && (
-                <div className="text-red-500 text-xs font-bold px-2 flex items-start gap-1 animate-in slide-in-from-top-1">
-                  <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-3 rounded-xl text-xs font-bold flex items-start gap-2 animate-in slide-in-from-top-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{error}</span>
                 </div>
               )}
-              <button type="submit" disabled={loading} className="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{view === 'login' ? t.continue : t.create}<ArrowRight className="w-4 h-4" /></>}
+              <button type="submit" disabled={loading} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-indigo-700 hover:shadow-2xl shadow-indigo-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>{view === 'login' ? t.continue : t.create}<ArrowRight className="w-5 h-5" /></>}
               </button>
             </form>
 
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <ShieldCheck className="w-4 h-4 text-amber-500" />
-              <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">{t.privacy}</p>
+            <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-800/20">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <p className="text-[10px] uppercase tracking-widest font-black text-slate-500">{t.privacy}</p>
             </div>
           </div>
         </div>
