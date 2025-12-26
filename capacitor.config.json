@@ -1,0 +1,10 @@
+
+{
+  "appId": "com.samuel.primarralai",
+  "appName": "PrimarralAI",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}

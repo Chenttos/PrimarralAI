@@ -7,7 +7,10 @@
   "author": "Samuel Ribeiro Passos",
   "scripts": {
     "start": "electron .",
-    "build:win": "electron-builder --windows"
+    "build:win": "electron-builder --windows",
+    "android:add": "npx cap add android",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android"
   },
   "build": {
     "appId": "com.samuel.primarralai",
@@ -27,7 +30,12 @@
       "!dist_electron/**/*"
     ]
   },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  },
   "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3"
   }
