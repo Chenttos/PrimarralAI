@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
-import { X, Github, Chrome, Loader2, ShieldCheck, Mail, Lock, ArrowRight, AlertCircle, UserPlus } from 'lucide-react';
-import { Language, User } from '../types';
+import React, { useState } from 'react';
+import { X, Github, Chrome, Loader2, ShieldCheck, Mail, Lock, ArrowRight, AlertCircle, UserPlus, Sparkles, Cloud } from 'lucide-react';
+import { Language, User, StoredAccount } from '../types';
+import * as cloud from '../services/cloudStore';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -11,62 +12,40 @@ interface LoginModalProps {
   lang: Language;
 }
 
-interface StoredAccount {
-  email: string;
-  password: string;
-  name: string;
-}
-
-// Contas padrão do sistema
-const DEFAULT_ACCOUNTS: StoredAccount[] = [
-  { email: 'admin@primarral.ai', password: '123', name: 'Admin Primarral' },
-  { email: 'estudante@email.com', password: 'estudar123', name: 'João Silva' }
-];
-
 const translations = {
   pt: {
-    title: "Acesse sua Conta",
-    subtitle: "Faça login para começar seus estudos com IA.",
+    title: "Acesse sua Conta Global",
+    subtitle: "Seus dados agora são salvos na nuvem e acessíveis em qualquer lugar.",
     loginTab: "Entrar",
     signupTab: "Criar Conta",
-    google: "Google",
-    github: "GitHub",
     emailPlaceholder: "Seu e-mail",
     passwordPlaceholder: "Sua senha",
     namePlaceholder: "Seu nome completo",
     continue: "Acessar Plataforma",
     create: "Criar minha conta",
-    loading: "Aguarde...",
-    or: "ou use",
-    privacy: "Ao entrar, você concorda com nossos termos de uso.",
-    errorEmailNotFound: "E-mail não encontrado. Verifique ou crie uma conta.",
-    errorWrongPassword: "Senha incorreta. Tente novamente.",
-    errorSignup: "Este e-mail já está cadastrado.",
-    errorNameEmpty: "Por favor, informe seu nome.",
-    hint: "Dica: Use admin@primarral.ai / 123",
-    successSignup: "Conta criada com sucesso! Fazendo login..."
+    loading: "Sincronizando...",
+    privacy: "Sua conta é global e segura.",
+    errorEmailNotFound: "E-mail não cadastrado na nuvem.",
+    errorWrongPassword: "Senha incorreta.",
+    errorSignup: "Este e-mail já está em uso. Tente fazer login.",
+    errorEmpty: "Preencha todos os campos corretamente."
   },
   en: {
-    title: "Access your Account",
-    subtitle: "Log in to start your AI studies.",
+    title: "Access Global Account",
+    subtitle: "Your data is now saved in the cloud and accessible anywhere.",
     loginTab: "Login",
     signupTab: "Sign Up",
-    google: "Google",
-    github: "GitHub",
     emailPlaceholder: "Your email",
     passwordPlaceholder: "Your password",
     namePlaceholder: "Your full name",
     continue: "Access Platform",
     create: "Create my account",
-    loading: "Please wait...",
-    or: "or use",
-    privacy: "By entering, you agree to our terms of use.",
-    errorEmailNotFound: "Email not found. Check or create an account.",
-    errorWrongPassword: "Incorrect password. Try again.",
-    errorSignup: "This email is already registered.",
-    errorNameEmpty: "Please enter your name.",
-    hint: "Hint: Use admin@primarral.ai / 123",
-    successSignup: "Account created! Logging in..."
+    loading: "Syncing...",
+    privacy: "Your account is global and secure.",
+    errorEmailNotFound: "Email not registered in the cloud.",
+    errorWrongPassword: "Incorrect password.",
+    errorSignup: "This email is already in use. Try logging in.",
+    errorEmpty: "Please fill in all fields correctly."
   }
 };
 
@@ -81,235 +60,128 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, isDar
   if (!isOpen) return null;
   const t = translations[lang];
 
-  // Helper para buscar todas as contas (Padrão + LocalStorage)
-  const getAllAccounts = (): StoredAccount[] => {
-    const localData = localStorage.getItem('primarral_db_accounts');
-    const localAccounts: StoredAccount[] = localData ? JSON.parse(localData) : [];
-    return [...DEFAULT_ACCOUNTS, ...localAccounts];
-  };
-
-  // Helper para salvar nova conta
-  const saveLocalAccount = (newAcc: StoredAccount) => {
-    const localData = localStorage.getItem('primarral_db_accounts');
-    const localAccounts: StoredAccount[] = localData ? JSON.parse(localData) : [];
-    localAccounts.push(newAcc);
-    localStorage.setItem('primarral_db_accounts', JSON.stringify(localAccounts));
-  };
-
-  const handleSocialLogin = (provider: 'google' | 'github') => {
-    setError(null);
-    setLoading(true);
-    setTimeout(() => {
-      const mockUser: User = {
-        name: provider === 'google' ? "Usuário Google" : "Dev GitHub",
-        email: provider === 'google' ? "user@gmail.com" : "dev@github.com",
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${provider === 'google' ? 'Felix' : 'Aneka'}`,
-        provider,
-        verified: true
-      };
-      onLogin(mockUser);
-      setLoading(false);
-      onClose();
-    }, 1200);
-  };
-
-  const handleEmailStep = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanPassword = password.trim();
+    const cleanName = name.trim();
+
+    if (!cleanEmail || !cleanPassword || (view === 'signup' && !cleanName)) {
+      setError(t.errorEmpty);
+      return;
+    }
+
     setLoading(true);
 
-    const accounts = getAllAccounts();
+    try {
+      const accounts = await cloud.getGlobalAccounts();
 
-    setTimeout(() => {
       if (view === 'login') {
-        const foundUser = accounts.find(u => u.email.toLowerCase() === email.toLowerCase());
-        
-        if (!foundUser) {
-          setError(t.errorEmailNotFound);
+        const foundUser = accounts.find(u => u.email.toLowerCase().trim() === cleanEmail);
+        if (!foundUser || foundUser.password !== cleanPassword) {
+          setError(!foundUser ? t.errorEmailNotFound : t.errorWrongPassword);
           setLoading(false);
           return;
         }
 
-        if (foundUser.password !== password) {
-          setError(t.errorWrongPassword);
-          setLoading(false);
-          return;
-        }
-
-        const mockUser: User = {
+        onLogin({
           name: foundUser.name,
           email: foundUser.email,
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${foundUser.name}`,
           provider: 'email',
-          verified: true
-        };
-        onLogin(mockUser);
+          verified: true,
+          points: foundUser.points || 50,
+          preferences: foundUser.preferences
+        });
       } else {
-        // Lógica de Registro (Signup)
-        if (!name.trim()) {
-          setError(t.errorNameEmpty);
-          setLoading(false);
-          return;
-        }
-
-        const alreadyExists = accounts.find(u => u.email.toLowerCase() === email.toLowerCase());
-        if (alreadyExists) {
+        // Validação estrita de e-mail existente antes de criar
+        const emailExists = accounts.some(u => u.email.toLowerCase().trim() === cleanEmail);
+        
+        if (emailExists) {
           setError(t.errorSignup);
           setLoading(false);
           return;
         }
 
-        // Salva "na nuvem" (localStorage)
         const newAccount: StoredAccount = {
-          email: email.toLowerCase(),
-          password: password,
-          name: name
+          email: cleanEmail,
+          password: cleanPassword,
+          name: cleanName,
+          points: 50
         };
-        saveLocalAccount(newAccount);
+        
+        await cloud.saveGlobalAccount(newAccount);
 
-        const mockUser: User = {
-          name: name,
-          email: email,
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+        onLogin({
+          name: cleanName,
+          email: cleanEmail,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanName}`,
           provider: 'email',
-          verified: true
-        };
-        onLogin(mockUser);
+          verified: true,
+          points: 50
+        });
       }
-      
-      setLoading(false);
       onClose();
-    }, 1000);
+    } catch (e) {
+      console.error(e);
+      setError("Erro de conexão com a nuvem.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={onClose} />
-      
-      <div className={`relative w-full max-w-sm overflow-hidden rounded-[2.5rem] shadow-2xl animate-in zoom-in-95 duration-300 transition-colors ${isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+      <div className={`relative w-full max-w-sm overflow-hidden rounded-[2.5rem] shadow-2xl transition-colors ${isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
         <div className="p-8">
           <div className="flex justify-end mb-2">
-            <button onClick={onClose} className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}>
-              <X className="w-5 h-5" />
-            </button>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-500/10"><X className="w-5 h-5" /></button>
           </div>
-
-          <div className="space-y-6 animate-in fade-in">
-            <div className="text-center">
-              <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-500/20">
-                <ShieldCheck className="w-8 h-8 text-white" />
-              </div>
-              <h3 className={`text-2xl font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.title}</h3>
-              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.subtitle}</p>
+          <div className="space-y-6 text-center">
+            <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-500/20">
+              <Cloud className="w-8 h-8 text-white" />
             </div>
+            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.title}</h3>
+            <p className="text-sm text-slate-500">{t.subtitle}</p>
 
             <div className={`flex p-1 rounded-xl ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-              <button 
-                onClick={() => { setView('login'); setError(null); }}
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${view === 'login' ? (isDark ? 'bg-slate-700 text-white shadow' : 'bg-white text-indigo-600 shadow') : 'text-slate-500'}`}
-              >
-                {t.loginTab}
-              </button>
-              <button 
-                onClick={() => { setView('signup'); setError(null); }}
-                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${view === 'signup' ? (isDark ? 'bg-slate-700 text-white shadow' : 'bg-white text-indigo-600 shadow') : 'text-slate-500'}`}
-              >
-                {t.signupTab}
-              </button>
+              <button onClick={() => { setView('login'); setError(null); }} className={`flex-1 py-2 text-sm font-bold rounded-lg ${view === 'login' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500'}`}>{t.loginTab}</button>
+              <button onClick={() => { setView('signup'); setError(null); }} className={`flex-1 py-2 text-sm font-bold rounded-lg ${view === 'signup' ? 'bg-indigo-600 text-white shadow' : 'text-slate-500'}`}>{t.signupTab}</button>
             </div>
 
-            <form onSubmit={handleEmailStep} className="space-y-3">
+            <form onSubmit={handleAuth} className="space-y-3 text-left">
               {view === 'signup' && (
-                <div className="relative animate-in slide-in-from-top-2">
+                <div className="relative">
                   <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={t.namePlaceholder}
-                    className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 outline-none focus:border-indigo-500 transition-all ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
-                  />
+                  <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder={t.namePlaceholder} className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 outline-none focus:border-indigo-500 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} />
                 </div>
               )}
-              
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t.emailPlaceholder}
-                  className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 outline-none focus:border-indigo-500 transition-all ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
-                />
+                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder={t.emailPlaceholder} className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 outline-none focus:border-indigo-500 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} />
               </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t.passwordPlaceholder}
-                  className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 outline-none focus:border-indigo-500 transition-all ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
-                />
+                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder={t.passwordPlaceholder} className={`w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 outline-none focus:border-indigo-500 ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} />
               </div>
-
               {error && (
-                <div className="flex items-center gap-2 text-red-500 text-xs font-bold px-2 py-1 animate-in slide-in-from-top-2">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {error}
+                <div className="text-red-500 text-xs font-bold px-2 flex items-start gap-1 animate-in slide-in-from-top-1">
+                  <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                  <span>{error}</span>
                 </div>
               )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/10 active:scale-[0.98]"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                  <>
-                    {view === 'login' ? t.continue : t.create}
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
+              <button type="submit" disabled={loading} className="w-full bg-indigo-600 text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{view === 'login' ? t.continue : t.create}<ArrowRight className="w-4 h-4" /></>}
               </button>
             </form>
 
-            {view === 'login' && (
-              <p className={`text-[10px] text-center font-bold ${isDark ? 'text-slate-700' : 'text-slate-300'}`}>
-                {t.hint}
-              </p>
-            )}
-
-            <div className="relative">
-              <div className={`absolute inset-0 flex items-center ${isDark ? 'opacity-20' : 'opacity-10'}`}><div className="w-full border-t border-current"></div></div>
-              <div className="relative flex justify-center text-xs uppercase font-bold text-slate-500"><span className={`px-4 ${isDark ? 'bg-slate-900' : 'bg-white'}`}>{t.or}</span></div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <ShieldCheck className="w-4 h-4 text-amber-500" />
+              <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">{t.privacy}</p>
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => handleSocialLogin('google')}
-                disabled={loading}
-                className={`flex items-center justify-center gap-2 py-3 rounded-2xl border font-bold transition-all ${isDark ? 'border-slate-700 hover:bg-slate-800 text-white' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}
-              >
-                <Chrome className="w-4 h-4" />
-                {t.google}
-              </button>
-              <button
-                onClick={() => handleSocialLogin('github')}
-                disabled={loading}
-                className={`flex items-center justify-center gap-2 py-3 rounded-2xl border font-bold transition-all ${isDark ? 'border-slate-700 hover:bg-slate-800 text-white' : 'border-slate-200 hover:bg-slate-50 text-slate-700'}`}
-              >
-                <Github className="w-4 h-4" />
-                {t.github}
-              </button>
-            </div>
-            
-            <p className={`text-[10px] text-center uppercase tracking-widest font-bold ${isDark ? 'text-slate-600' : 'text-slate-400'}`}>
-              {t.privacy}
-            </p>
           </div>
         </div>
       </div>

@@ -7,9 +7,19 @@ export interface User {
   avatar: string;
   provider: 'google' | 'github' | 'email';
   verified?: boolean;
+  points: number; 
+  preferences?: string; 
 }
 
-export interface StudyImage {
+export interface StoredAccount {
+  email: string;
+  password: string;
+  name: string;
+  points: number;
+  preferences?: string;
+}
+
+export interface StudyFile {
   id: string;
   base64: string;
   mimeType: string;
@@ -17,9 +27,10 @@ export interface StudyImage {
 }
 
 export interface StudyContent {
-  images: StudyImage[];
+  files: StudyFile[];
   text?: string;
   language: Language;
+  userPreferences?: string;
 }
 
 export interface AnalysisResult {
@@ -32,6 +43,7 @@ export interface AnalysisResult {
 
 export enum StudyMode {
   IDLE = 'IDLE',
+  DASHBOARD = 'DASHBOARD',
   ANALYZING = 'ANALYZING',
   READY = 'READY',
   SUMMARY = 'SUMMARY',
@@ -59,7 +71,7 @@ export interface StudyHistoryEntry {
   date: number;
   topic: string;
   description: string;
-  images: StudyImage[];
+  files: StudyFile[];
   text?: string;
   analysis: AnalysisResult;
 }

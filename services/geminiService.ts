@@ -1,18 +1,17 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, StudyImage, StudyContent, QuizQuestion, Flashcard, Language } from "../types";
+import { AnalysisResult, StudyFile, StudyContent, QuizQuestion, Flashcard, Language } from "../types";
 
-// Fix: Always use process.env.API_KEY directly in the constructor
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
 const prepareParts = (content: StudyContent) => {
   const parts: any[] = [];
-  if (content.images && content.images.length > 0) {
-    content.images.forEach(img => {
+  if (content.files && content.files.length > 0) {
+    content.files.forEach(file => {
       parts.push({
         inlineData: {
-          data: img.base64.split(',')[1],
-          mimeType: img.mimeType
+          data: file.base64.split(',')[1],
+          mimeType: file.mimeType
         }
       });
     });
@@ -26,12 +25,15 @@ const prepareParts = (content: StudyContent) => {
 const getLangInstruction = (lang: Language) => 
   lang === 'pt' ? "Responda em Português do Brasil." : "Respond in English.";
 
+const getPreferenceInstruction = (prefs?: string) => 
+  prefs ? `\nIMPORTANTE: Siga estas preferências do usuário para o estilo do conteúdo: "${prefs}".` : "";
+
 export const analyzeContent = async (content: StudyContent): Promise<AnalysisResult> => {
   const ai = getAI();
   const model = 'gemini-3-flash-preview';
   const parts = prepareParts(content);
 
-  const prompt = `Analise este material. Determine se ele contém material de estudo (páginas de livros, notas de aula, diagramas, exercícios ou texto explicativo acadêmico). ${getLangInstruction(content.language)} Responda estritamente em JSON.`;
+  const prompt = `Analise este material (pode ser imagem ou PDF). Determine se ele contém material de estudo acadêmico ou técnico. ${getLangInstruction(content.language)} ${getPreferenceInstruction(content.userPreferences)} Responda estritamente em JSON.`;
 
   const response = await ai.models.generateContent({
     model,
@@ -52,7 +54,6 @@ export const analyzeContent = async (content: StudyContent): Promise<AnalysisRes
     }
   });
 
-  // Fix: Access response.text directly (property, not method)
   return JSON.parse(response.text || "{}");
 };
 
@@ -63,9 +64,8 @@ export const generateSummary = async (content: StudyContent): Promise<string> =>
   
   const response = await ai.models.generateContent({
     model,
-    contents: { parts: [...parts, { text: `Crie um resumo detalhado e estruturado do conteúdo presente. Use Markdown para formatação. ${getLangInstruction(content.language)}` }] }
+    contents: { parts: [...parts, { text: `Crie um resumo detalhado e estruturado com base nos arquivos e textos enviados. Use Markdown. ${getLangInstruction(content.language)} ${getPreferenceInstruction(content.userPreferences)}` }] }
   });
-  // Fix: Access response.text directly
   return response.text || "";
 };
 
@@ -76,7 +76,7 @@ export const generateQuiz = async (content: StudyContent): Promise<QuizQuestion[
 
   const response = await ai.models.generateContent({
     model,
-    contents: { parts: [...parts, { text: `Crie um quiz com 5 questões de múltipla escolha baseadas neste material. ${getLangInstruction(content.language)} Responda em JSON.` }] },
+    contents: { parts: [...parts, { text: `Crie um quiz com 5 questões de múltipla escolha baseado no material. ${getLangInstruction(content.language)} ${getPreferenceInstruction(content.userPreferences)} Responda em JSON.` }] },
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -86,7 +86,7 @@ export const generateQuiz = async (content: StudyContent): Promise<QuizQuestion[
           properties: {
             question: { type: Type.STRING },
             options: { type: Type.ARRAY, items: { type: Type.STRING } },
-            correctAnswer: { type: Type.INTEGER, description: "Índice da opção correta (0-3)" },
+            correctAnswer: { type: Type.INTEGER },
             explanation: { type: Type.STRING }
           },
           required: ["question", "options", "correctAnswer", "explanation"]
@@ -94,7 +94,6 @@ export const generateQuiz = async (content: StudyContent): Promise<QuizQuestion[
       }
     }
   });
-  // Fix: Access response.text directly
   return JSON.parse(response.text || "[]");
 };
 
@@ -105,7 +104,7 @@ export const generateFlashcards = async (content: StudyContent): Promise<Flashca
 
   const response = await ai.models.generateContent({
     model,
-    contents: { parts: [...parts, { text: `Extraia os conceitos-chave e crie 8 flashcards (termo na frente, explicação no verso). ${getLangInstruction(content.language)} Responda em JSON.` }] },
+    contents: { parts: [...parts, { text: `Extraia conceitos-chave do material e crie 8 flashcards. ${getLangInstruction(content.language)} ${getPreferenceInstruction(content.userPreferences)} Responda em JSON.` }] },
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -121,7 +120,6 @@ export const generateFlashcards = async (content: StudyContent): Promise<Flashca
       }
     }
   });
-  // Fix: Access response.text directly
   return JSON.parse(response.text || "[]");
 };
 
@@ -132,8 +130,7 @@ export const generateExplanation = async (content: StudyContent): Promise<string
   
   const response = await ai.models.generateContent({
     model,
-    contents: { parts: [...parts, { text: `Explique o conteúdo de forma muito simples, como se estivesse explicando para uma criança de 10 anos (ELI5). Use analogias divertidas. ${getLangInstruction(content.language)}` }] }
+    contents: { parts: [...parts, { text: `Explique este conteúdo de forma didática. ${getLangInstruction(content.language)} ${getPreferenceInstruction(content.userPreferences)}` }] }
   });
-  // Fix: Access response.text directly
   return response.text || "";
 };

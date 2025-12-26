@@ -106,8 +106,8 @@ const StudyHistory: React.FC<StudyHistoryProps> = ({ userEmail, onSelect, onBack
               className={`group flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer hover:border-indigo-500/50 hover:shadow-lg ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}
             >
               <div className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 flex items-center justify-center ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                {item.images.length > 0 ? (
-                  <img src={item.images[0].base64} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                {item.files.length > 0 && item.files[0].mimeType.startsWith('image/') ? (
+                  <img src={item.files[0].base64} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                 ) : (
                   <Book className="w-6 h-6 text-indigo-500/50" />
                 )}

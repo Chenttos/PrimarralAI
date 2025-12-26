@@ -14,12 +14,12 @@ import {
   Mic,
   Trophy
 } from 'lucide-react';
-import { StudyMode, StudyImage, AnalysisResult, QuizQuestion, Flashcard, StudyContent, Language } from '../types';
+import { StudyMode, StudyFile, AnalysisResult, QuizQuestion, Flashcard, StudyContent, Language } from '../types';
 import * as gemini from '../services/geminiService';
 import { LiveTutor } from './LiveTutor';
 
 interface StudyResultProps {
-  images: StudyImage[];
+  files: StudyFile[];
   textContent?: string;
   analysis: AnalysisResult;
   initialMode: StudyMode;
@@ -83,7 +83,7 @@ const translations = {
   }
 };
 
-const StudyResult: React.FC<StudyResultProps> = ({ images, textContent, analysis, initialMode, onBack, isDark, lang }) => {
+const StudyResult: React.FC<StudyResultProps> = ({ files, textContent, analysis, initialMode, onBack, isDark, lang }) => {
   const [currentMode, setCurrentMode] = useState<StudyMode>(StudyMode.READY);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<string>("");
@@ -97,7 +97,7 @@ const StudyResult: React.FC<StudyResultProps> = ({ images, textContent, analysis
   const t = translations[lang];
 
   const getFullContent = (): StudyContent => ({
-    images,
+    files,
     text: textContent,
     language: lang
   });
@@ -164,14 +164,19 @@ const StudyResult: React.FC<StudyResultProps> = ({ images, textContent, analysis
   }
 
   if (currentMode === StudyMode.READY) {
+    const firstImage = files.find(f => f.mimeType.startsWith('image/'))?.base64;
+
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className={`rounded-2xl p-6 border shadow-sm flex flex-col md:flex-row items-center gap-6 transition-colors ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
           <div className={`w-full md:w-1/3 aspect-[4/3] rounded-xl overflow-hidden flex items-center justify-center ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-            {images.length > 0 ? (
-              <img src={images[0].base64} alt="Capa" className="w-full h-full object-cover" />
+            {firstImage ? (
+              <img src={firstImage} alt="Capa" className="w-full h-full object-cover" />
             ) : (
-              <Book className={`w-12 h-12 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
+              <div className="flex flex-col items-center gap-2">
+                <Book className={`w-12 h-12 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
+                <span className="text-[10px] font-bold text-slate-500 uppercase">{files.length} {files.length === 1 ? 'Arquivo' : 'Arquivos'}</span>
+              </div>
             )}
           </div>
           <div className="flex-1 space-y-3 text-center md:text-left">
@@ -211,6 +216,7 @@ const StudyResult: React.FC<StudyResultProps> = ({ images, textContent, analysis
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {/* ... Rest of the component (Summary, Quiz, etc) remains the same ... */}
       <div className="flex items-center gap-4 mb-4">
         <button 
           onClick={() => setCurrentMode(StudyMode.READY)}
