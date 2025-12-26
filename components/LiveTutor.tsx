@@ -42,6 +42,7 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
 
   const t = translations[lang];
 
+  // Fix: Implement manual base64 decoding following guidelines
   const decode = (base64: string) => {
     const binaryString = atob(base64);
     const len = binaryString.length;
@@ -52,6 +53,7 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
     return bytes;
   };
 
+  // Fix: Implement manual base64 encoding following guidelines
   const encode = (bytes: Uint8Array) => {
     let binary = '';
     const len = bytes.byteLength;
@@ -61,6 +63,7 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
     return btoa(binary);
   };
 
+  // Fix: Raw PCM decoding logic following example (do not use decodeAudioData for raw PCM)
   async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
     const dataInt16 = new Int16Array(data.buffer);
     const frameCount = dataInt16.length / numChannels;
@@ -75,8 +78,8 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
   }
 
   useEffect(() => {
-    let session: any = null;
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    // Fix: Use process.env.API_KEY directly as per guidelines
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
     const startSession = async () => {
       try {
@@ -114,14 +117,17 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
                   data: encode(new Uint8Array(int16.buffer)),
                   mimeType: 'audio/pcm;rate=16000'
                 };
+                // Fix: Solely rely on sessionPromise resolve to send realtime input
                 sessionPromise.then(s => s.sendRealtimeInput({ media: pcmBlob }));
               };
               source.connect(scriptProcessor);
               scriptProcessor.connect(inputCtx.destination);
             },
             onmessage: async (message) => {
+              // Fix: Correct extraction of audio data
               const audioBase64 = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
               if (audioBase64) {
+                // Fix: Handle playback queue using nextStartTimeRef
                 nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
                 const buffer = await decodeAudioData(decode(audioBase64), outputCtx, 24000, 1);
                 const source = outputCtx.createBufferSource();
@@ -133,8 +139,11 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
                 source.onended = () => sourcesRef.current.delete(source);
               }
               if (message.serverContent?.interrupted) {
-                sourcesRef.current.forEach(s => s.stop());
-                sourcesRef.current.clear();
+                // Fix: Stop all currently playing audio chunks on interruption
+                sourcesRef.current.forEach(s => {
+                  try { s.stop(); } catch(e) {}
+                  sourcesRef.current.delete(s);
+                });
                 nextStartTimeRef.current = 0;
               }
             },
@@ -143,7 +152,7 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
           }
         });
 
-        session = await sessionPromise;
+        await sessionPromise;
       } catch (err) {
         console.error("Failed to start Live session", err);
         onClose();
@@ -156,7 +165,7 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
       if (audioContextRef.current) audioContextRef.current.close();
     };
-  }, [topic, context, lang]);
+  }, [topic, context, lang, onClose]);
 
   return (
     <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-6 backdrop-blur-xl ${isDark ? 'bg-slate-950/90' : 'bg-white/90'}`}>

@@ -32,7 +32,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ images, onImagesChange, isDark,
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach(file => {
+    // Fix: Explicitly type 'file' as File to avoid 'unknown' type errors
+    Array.from(files).forEach((file: File) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result as string;
@@ -94,7 +95,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ images, onImagesChange, isDark,
               multiple 
               accept="image/*" 
               onChange={handleFileChange} 
-            />
+          />
           </label>
         </div>
       )}

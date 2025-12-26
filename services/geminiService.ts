@@ -2,7 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, StudyImage, StudyContent, QuizQuestion, Flashcard, Language } from "../types";
 
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Fix: Always use process.env.API_KEY directly in the constructor
+const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
 const prepareParts = (content: StudyContent) => {
   const parts: any[] = [];
@@ -51,7 +52,8 @@ export const analyzeContent = async (content: StudyContent): Promise<AnalysisRes
     }
   });
 
-  return JSON.parse(response.text);
+  // Fix: Access response.text directly (property, not method)
+  return JSON.parse(response.text || "{}");
 };
 
 export const generateSummary = async (content: StudyContent): Promise<string> => {
@@ -63,7 +65,8 @@ export const generateSummary = async (content: StudyContent): Promise<string> =>
     model,
     contents: { parts: [...parts, { text: `Crie um resumo detalhado e estruturado do conteúdo presente. Use Markdown para formatação. ${getLangInstruction(content.language)}` }] }
   });
-  return response.text;
+  // Fix: Access response.text directly
+  return response.text || "";
 };
 
 export const generateQuiz = async (content: StudyContent): Promise<QuizQuestion[]> => {
@@ -91,7 +94,8 @@ export const generateQuiz = async (content: StudyContent): Promise<QuizQuestion[
       }
     }
   });
-  return JSON.parse(response.text);
+  // Fix: Access response.text directly
+  return JSON.parse(response.text || "[]");
 };
 
 export const generateFlashcards = async (content: StudyContent): Promise<Flashcard[]> => {
@@ -117,7 +121,8 @@ export const generateFlashcards = async (content: StudyContent): Promise<Flashca
       }
     }
   });
-  return JSON.parse(response.text);
+  // Fix: Access response.text directly
+  return JSON.parse(response.text || "[]");
 };
 
 export const generateExplanation = async (content: StudyContent): Promise<string> => {
@@ -129,5 +134,6 @@ export const generateExplanation = async (content: StudyContent): Promise<string
     model,
     contents: { parts: [...parts, { text: `Explique o conteúdo de forma muito simples, como se estivesse explicando para uma criança de 10 anos (ELI5). Use analogias divertidas. ${getLangInstruction(content.language)}` }] }
   });
-  return response.text;
+  // Fix: Access response.text directly
+  return response.text || "";
 };
