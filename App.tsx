@@ -19,7 +19,8 @@ import {
   LayoutDashboard,
   Cloud,
   CloudUpload,
-  Check
+  Check,
+  Shield
 } from 'lucide-react';
 import { StudyFile, StudyMode, AnalysisResult, Language, User, StudyHistoryEntry } from './types';
 import * as gemini from './services/geminiService';
@@ -31,6 +32,7 @@ import LoginModal from './components/LoginModal';
 import StudyHistory from './components/StudyHistory';
 import PointsManager from './components/PointsManager';
 import Dashboard from './components/Dashboard';
+import AdminPanel from './components/AdminPanel';
 
 const ADMIN_EMAIL = "samuelribeiropassos@icloud.com";
 
@@ -113,7 +115,6 @@ const App: React.FC = () => {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingMsg, setLoadingMsg] = useState("");
-  const [ipNotification, setIpNotification] = useState(false);
   const [history, setHistory] = useState<StudyHistoryEntry[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   
@@ -295,12 +296,14 @@ const App: React.FC = () => {
     setMode(StudyMode.READY);
   };
 
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
   return (
-    <div className={`min-h-screen transition-colors duration-300 flex flex-col ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
-      <header className={`border-b sticky top-0 z-50 transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-900/80 border-slate-800 backdrop-blur-md' : 'bg-white/80 border-slate-200 backdrop-blur-md'}`}>
+    <div className={`min-h-screen transition-colors duration-500 flex flex-col ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+      <header className={`border-b sticky top-0 z-50 transition-all duration-300 ${theme === 'dark' ? 'bg-slate-900/80 border-slate-800 backdrop-blur-md shadow-lg shadow-black/20' : 'bg-white/80 border-slate-200 backdrop-blur-md shadow-sm'}`}>
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setMode(user ? StudyMode.DASHBOARD : StudyMode.IDLE)}>
-            <div className="bg-indigo-600 p-2 rounded-lg shadow-lg shadow-indigo-500/20">
+          <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setMode(user ? StudyMode.DASHBOARD : StudyMode.IDLE)}>
+            <div className="bg-indigo-600 p-2 rounded-lg shadow-lg shadow-indigo-500/20 group-hover:scale-110 group-hover:rotate-6 transition-transform">
               <Brain className="w-6 h-6 text-white" />
             </div>
             <div className="flex flex-col">
@@ -316,11 +319,11 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2 md:gap-3">
             {user && (
               <div className="hidden sm:flex items-center gap-2 mr-2">
-                <div className={`p-2 rounded-full ${isSyncing ? 'text-amber-500 animate-spin' : 'text-emerald-500'}`} title={isSyncing ? t.syncing : t.synced}>
+                <div className={`p-2 rounded-full ${isSyncing ? 'text-amber-500 animate-spin' : 'text-emerald-500 animate-fade-in'}`} title={isSyncing ? t.syncing : t.synced}>
                   {isSyncing ? <RefreshCw className="w-4 h-4" /> : (
                     <div className="relative">
                       <Cloud className="w-4 h-4" />
-                      <Check className="absolute -bottom-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full p-0.5 text-white" />
+                      <Check className="absolute -bottom-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full p-0.5 text-white animate-scale-in" />
                     </div>
                   )}
                 </div>
@@ -329,9 +332,19 @@ const App: React.FC = () => {
 
             {user && (
               <div className="flex items-center gap-1">
+                {isAdmin && (
+                  <button 
+                    onClick={() => setMode(StudyMode.ADMIN)}
+                    className={`p-2 rounded-xl transition-all hover:scale-110 active:scale-90 ${mode === StudyMode.ADMIN ? 'bg-indigo-600 text-white shadow-lg' : (theme === 'dark' ? 'bg-slate-800 text-amber-500 hover:bg-slate-700' : 'bg-slate-100 text-amber-600 hover:bg-slate-200')}`}
+                    title="Admin"
+                  >
+                    <Shield className="w-4 h-4" />
+                  </button>
+                )}
+
                 <button 
                   onClick={() => setMode(StudyMode.DASHBOARD)}
-                  className={`p-2 rounded-xl transition-all ${mode === StudyMode.DASHBOARD ? 'bg-indigo-600 text-white' : (theme === 'dark' ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600')}`}
+                  className={`p-2 rounded-xl transition-all hover:scale-110 active:scale-90 ${mode === StudyMode.DASHBOARD ? 'bg-indigo-600 text-white shadow-lg' : (theme === 'dark' ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
                   title={t.dashboard}
                 >
                   <LayoutDashboard className="w-4 h-4" />
@@ -339,17 +352,17 @@ const App: React.FC = () => {
 
                 <button 
                   onClick={() => setIsPointsModalOpen(true)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition-all hover:scale-105 active:scale-95 ${theme === 'dark' ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' : 'bg-indigo-50 border-indigo-200 text-indigo-600'}`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 transition-all hover:scale-110 active:scale-90 ${theme === 'dark' ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20' : 'bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100'}`}
                 >
-                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <Sparkles className="w-4 h-4 text-amber-500 animate-float" />
                   <span className="font-black text-sm">
-                    {user.email === ADMIN_EMAIL ? "∞" : user.points} <span className="text-[10px]">IP</span>
+                    {isAdmin ? "∞" : user.points} <span className="text-[10px]">IP</span>
                   </span>
                 </button>
                 
                 <button 
                   onClick={() => setMode(StudyMode.HISTORY)}
-                  className={`p-2 rounded-xl transition-all ${mode === StudyMode.HISTORY ? 'bg-indigo-600 text-white' : (theme === 'dark' ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
+                  className={`p-2 rounded-xl transition-all hover:scale-110 active:scale-90 ${mode === StudyMode.HISTORY ? 'bg-indigo-600 text-white shadow-lg' : (theme === 'dark' ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
                 >
                   <HistoryIcon className="w-4 h-4" />
                 </button>
@@ -357,14 +370,14 @@ const App: React.FC = () => {
             )}
 
             {user ? (
-              <div className="flex items-center gap-2 md:gap-3 mr-2">
-                <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full border border-indigo-500/50" />
-                <button onClick={handleLogout} className="p-2 rounded-xl hover:bg-red-500/10 text-slate-500 hover:text-red-500">
+              <div className="flex items-center gap-2 md:gap-3 mr-2 group">
+                <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full border border-indigo-500/50 group-hover:ring-2 ring-indigo-500/30 transition-all" />
+                <button onClick={handleLogout} className="p-2 rounded-xl hover:bg-red-500/10 text-slate-500 hover:text-red-500 transition-colors">
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <button onClick={() => setIsLoginModalOpen(true)} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold">
+              <button onClick={() => setIsLoginModalOpen(true)} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/25 hover:bg-indigo-700 hover:-translate-y-0.5 active:translate-y-0 transition-all">
                 {t.login}
               </button>
             )}
@@ -372,15 +385,15 @@ const App: React.FC = () => {
             <div className="flex items-center gap-1.5">
               <button 
                 onClick={() => setIsDevModalOpen(true)} 
-                className={`p-2 rounded-xl ${theme === 'dark' ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}
+                className={`p-2 rounded-xl transition-all hover:bg-indigo-500/10 ${theme === 'dark' ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}
                 title="Developer Info"
               >
                 <Info className="w-4 h-4" />
               </button>
-              <button onClick={toggleLang} className={`p-2 rounded-xl text-xs font-bold ${theme === 'dark' ? 'bg-slate-800 text-slate-300' : 'bg-slate-100'}`}>
-                {lang}
+              <button onClick={toggleLang} className={`p-2 rounded-xl text-xs font-bold transition-all hover:bg-indigo-500/10 ${theme === 'dark' ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>
+                {lang.toUpperCase()}
               </button>
-              <button onClick={toggleTheme} className={`p-2 rounded-xl ${theme === 'dark' ? 'bg-slate-800 text-amber-400' : 'bg-slate-100 text-indigo-600'}`}>
+              <button onClick={toggleTheme} className={`p-2 rounded-xl transition-all hover:rotate-12 ${theme === 'dark' ? 'bg-slate-800 text-amber-400 hover:bg-slate-700' : 'bg-slate-100 text-indigo-600 hover:bg-slate-200'}`}>
                 {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
               </button>
             </div>
@@ -390,82 +403,101 @@ const App: React.FC = () => {
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8">
         {(mode === StudyMode.IDLE || (mode === StudyMode.DASHBOARD && !user)) && (
-          <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="space-y-8 animate-slide-up">
             <div className="text-center space-y-3">
-              <h2 className="text-3xl md:text-4xl font-extrabold leading-tight">
-                {t.welcome} <span className="text-indigo-500">{t.welcomeHighlight}</span>
+              <h2 className="text-3xl md:text-5xl font-extrabold leading-tight tracking-tight">
+                {t.welcome} <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500">{t.welcomeHighlight}</span>
               </h2>
-              <p className={`max-w-2xl mx-auto ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>{t.welcomeSub}</p>
+              <p className={`max-w-2xl mx-auto text-lg ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>{t.welcomeSub}</p>
             </div>
 
             <div className="flex justify-center">
-              <div className={`flex p-1 rounded-2xl ${theme === 'dark' ? 'bg-slate-900' : 'bg-slate-200/50'}`}>
-                <button onClick={() => setInputMode('file')} className={`px-6 py-2.5 rounded-xl font-medium ${inputMode === 'file' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>
+              <div className={`flex p-1 rounded-2xl shadow-inner ${theme === 'dark' ? 'bg-slate-900' : 'bg-slate-200/50'}`}>
+                <button onClick={() => setInputMode('file')} className={`px-8 py-3 rounded-xl font-bold transition-all ${inputMode === 'file' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-400'}`}>
                   {t.files}
                 </button>
-                <button onClick={() => setInputMode('text')} className={`px-6 py-2.5 rounded-xl font-medium ${inputMode === 'text' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>
+                <button onClick={() => setInputMode('text')} className={`px-8 py-3 rounded-xl font-bold transition-all ${inputMode === 'text' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-400'}`}>
                   {t.text}
                 </button>
               </div>
             </div>
 
-            <div className="transition-all duration-300 min-h-[256px]">
+            <div className="transition-all duration-500 min-h-[256px]">
               {inputMode === 'file' ? (
-                <FileUpload files={files} onFilesChange={newFiles => {setFiles(newFiles); setError(null);}} isDark={theme === 'dark'} lang={lang} />
+                <div className="animate-scale-in">
+                    <FileUpload files={files} onFilesChange={newFiles => {setFiles(newFiles); setError(null);}} isDark={theme === 'dark'} lang={lang} />
+                </div>
               ) : (
                 <textarea
                   value={textInput}
                   onChange={e => setTextInput(e.target.value)}
                   placeholder={t.placeholder}
-                  className={`w-full h-64 p-6 rounded-2xl border-2 outline-none focus:border-indigo-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-200'}`}
+                  className={`w-full h-64 p-6 rounded-3xl border-2 outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-lg leading-relaxed animate-scale-in ${theme === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-200'}`}
                 />
               )}
             </div>
 
-            {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-500 text-sm font-medium">{error}</div>}
+            {error && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-red-500 text-sm font-bold flex items-center gap-2 animate-shake">
+              <AlertCircle className="w-5 h-5" />
+              {error}
+            </div>}
 
             <div className="flex justify-center">
-              <button onClick={startStudy} className="flex items-center gap-2 px-10 py-4 rounded-full font-bold text-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-500/20 transition-all active:scale-95">
-                <BookOpen className="w-6 h-6" />
+              <button onClick={startStudy} className="group relative flex items-center gap-3 px-12 py-5 rounded-full font-black text-xl bg-indigo-600 text-white hover:bg-indigo-700 hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/40 transition-all active:scale-95 active:translate-y-0 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-[shimmer_2s_infinite]"></div>
+                <BookOpen className="w-7 h-7" />
                 {t.startBtn}
               </button>
             </div>
           </div>
         )}
 
-        {mode === StudyMode.DASHBOARD && user && (
-          <Dashboard 
-            user={user} 
-            history={history} 
-            onUpdatePreferences={updateUserPreferences}
-            onNavigateToHistory={() => setMode(StudyMode.HISTORY)}
-            onNavigateToNewStudy={() => setMode(StudyMode.IDLE)}
-            isDark={theme === 'dark'}
-            lang={lang}
-          />
-        )}
+        <div className="view-transition">
+            {mode === StudyMode.DASHBOARD && user && (
+              <Dashboard 
+                user={user} 
+                history={history} 
+                onUpdatePreferences={updateUserPreferences}
+                onNavigateToHistory={() => setMode(StudyMode.HISTORY)}
+                onNavigateToNewStudy={() => setMode(StudyMode.IDLE)}
+                isDark={theme === 'dark'}
+                lang={lang}
+              />
+            )}
 
-        {mode === StudyMode.ANALYZING && (
-          <div className="flex flex-col items-center justify-center py-20 space-y-6">
-            <Loader2 className="w-16 h-16 text-indigo-500 animate-spin" />
-            <h3 className="text-xl font-semibold">{loadingMsg}</h3>
-          </div>
-        )}
+            {mode === StudyMode.ADMIN && isAdmin && (
+              <AdminPanel 
+                onBack={() => setMode(StudyMode.DASHBOARD)}
+                isDark={theme === 'dark'}
+                lang={lang}
+              />
+            )}
 
-        {mode === StudyMode.HISTORY && user && (
-          <StudyHistory userEmail={user.email} onSelect={loadFromHistory} isDark={theme === 'dark'} lang={lang} onBack={() => setMode(StudyMode.DASHBOARD)} />
-        )}
+            {mode === StudyMode.ANALYZING && (
+              <div className="flex flex-col items-center justify-center py-24 space-y-6 animate-fade-in">
+                <div className="relative">
+                    <div className="absolute inset-0 rounded-full bg-indigo-500/20 blur-2xl animate-pulse"></div>
+                    <Loader2 className="w-20 h-20 text-indigo-500 animate-spin relative z-10" />
+                </div>
+                <h3 className="text-2xl font-black tracking-tight animate-pulse">{loadingMsg}</h3>
+              </div>
+            )}
 
-        {mode !== StudyMode.IDLE && mode !== StudyMode.ANALYZING && mode !== StudyMode.HISTORY && mode !== StudyMode.DASHBOARD && (
-          <StudyResult files={files} textContent={textInput} analysis={analysis!} initialMode={mode} onBack={() => setMode(StudyMode.READY)} isDark={theme === 'dark'} lang={lang} />
-        )}
+            {mode === StudyMode.HISTORY && user && (
+              <StudyHistory userEmail={user.email} onSelect={loadFromHistory} isDark={theme === 'dark'} lang={lang} onBack={() => setMode(StudyMode.DASHBOARD)} />
+            )}
+
+            {mode !== StudyMode.IDLE && mode !== StudyMode.ANALYZING && mode !== StudyMode.HISTORY && mode !== StudyMode.DASHBOARD && mode !== StudyMode.ADMIN && (
+              <StudyResult files={files} textContent={textInput} analysis={analysis!} initialMode={mode} onBack={() => setMode(StudyMode.READY)} isDark={theme === 'dark'} lang={lang} />
+            )}
+        </div>
       </main>
 
       <DeveloperModal isOpen={isDevModalOpen} onClose={() => setIsDevModalOpen(false)} isDark={theme === 'dark'} lang={lang} />
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} isDark={theme === 'dark'} lang={lang} />
       {user && <PointsManager isOpen={isPointsModalOpen} onClose={() => setIsPointsModalOpen(false)} points={user.points} onRedeem={handleRedeemCode} isDark={theme === 'dark'} lang={lang} />}
 
-      <footer className="py-8 border-t text-center text-sm font-medium text-slate-500">
+      <footer className="py-8 border-t text-center text-sm font-medium text-slate-500 opacity-60">
         <p>{t.footer}</p>
       </footer>
     </div>

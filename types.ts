@@ -51,7 +51,8 @@ export enum StudyMode {
   FLASHCARDS = 'FLASHCARDS',
   EXPLANATION = 'EXPLANATION',
   LIVE = 'LIVE',
-  HISTORY = 'HISTORY'
+  HISTORY = 'HISTORY',
+  ADMIN = 'ADMIN'
 }
 
 export interface QuizQuestion {

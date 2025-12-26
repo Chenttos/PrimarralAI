@@ -19,17 +19,12 @@ export const saveGlobalAccount = async (account: StoredAccount): Promise<void> =
   
   const existingIdx = accounts.findIndex(a => a.email.toLowerCase().trim() === emailLower);
   
-  // Se estivermos tentando criar uma nova conta (sem senha prévia no contexto de save) 
-  // e o e-mail já existe, lançamos erro.
   if (existingIdx !== -1) {
-    // Se a intenção for atualizar (teríamos uma lógica de update separada ou flag), 
-    // mas aqui o saveGlobalAccount é usado para Registro e Updates de perfil.
-    // Vamos permitir update se as senhas coincidirem ou se for um fluxo de update logado.
     accounts[existingIdx] = { ...accounts[existingIdx], ...account };
   } else {
     accounts.push({
       ...account,
-      email: emailLower // Garante consistência
+      email: emailLower
     });
   }
   
@@ -63,4 +58,24 @@ export const saveGlobalHistory = async (email: string, history: StudyHistoryEntr
   await simulateLatency();
   const key = `primarral_cloud_history_${email.toLowerCase().trim()}`;
   localStorage.setItem(key, JSON.stringify(history));
+};
+
+// --- ADMIN FUNCTIONS ---
+
+export const deleteGlobalAccount = async (email: string): Promise<void> => {
+  await simulateLatency();
+  const accounts = await getGlobalAccounts();
+  const filtered = accounts.filter(a => a.email.toLowerCase().trim() !== email.toLowerCase().trim());
+  localStorage.setItem(CLOUD_DB_KEY, JSON.stringify(filtered));
+  localStorage.removeItem(`primarral_cloud_history_${email.toLowerCase().trim()}`);
+};
+
+export const updateGlobalUserPoints = async (email: string, points: number): Promise<void> => {
+  await simulateLatency();
+  const accounts = await getGlobalAccounts();
+  const idx = accounts.findIndex(a => a.email.toLowerCase().trim() === email.toLowerCase().trim());
+  if (idx !== -1) {
+    accounts[idx].points = points;
+    localStorage.setItem(CLOUD_DB_KEY, JSON.stringify(accounts));
+  }
 };

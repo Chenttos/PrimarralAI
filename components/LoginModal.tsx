@@ -12,6 +12,8 @@ interface LoginModalProps {
   lang: Language;
 }
 
+const BANNED_EMAIL = "samuelribeiropassos@gmail.com";
+
 const translations = {
   pt: {
     title: "Acesse sua Conta Global",
@@ -28,7 +30,8 @@ const translations = {
     errorEmailNotFound: "E-mail não cadastrado na nuvem.",
     errorWrongPassword: "Senha incorreta.",
     errorSignup: "Este e-mail já está em uso. Tente fazer login.",
-    errorEmpty: "Preencha todos os campos corretamente."
+    errorEmpty: "Preencha todos os campos corretamente.",
+    errorBanned: "Este e-mail foi banido da plataforma por violar os termos."
   },
   en: {
     title: "Access Global Account",
@@ -45,7 +48,8 @@ const translations = {
     errorEmailNotFound: "Email not registered in the cloud.",
     errorWrongPassword: "Incorrect password.",
     errorSignup: "This email is already in use. Try logging in.",
-    errorEmpty: "Please fill in all fields correctly."
+    errorEmpty: "Please fill in all fields correctly.",
+    errorBanned: "This email has been banned from the platform for violating terms."
   }
 };
 
@@ -70,6 +74,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin, isDar
 
     if (!cleanEmail || !cleanPassword || (view === 'signup' && !cleanName)) {
       setError(t.errorEmpty);
+      return;
+    }
+
+    // Ban Check
+    if (cleanEmail === BANNED_EMAIL) {
+      setError(t.errorBanned);
       return;
     }
 

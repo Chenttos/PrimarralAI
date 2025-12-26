@@ -16,6 +16,7 @@
             padding: 0;
             color: white;
             -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
         }
         #root:empty::after {
             content: "Iniciando PrimarralAI...";
@@ -28,18 +29,72 @@
             font-size: 1.2rem;
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
+        
+        /* Transições suaves globais */
+        * {
+            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .view-transition {
+            animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .animate-pulse-subtle {
+            animation: pulse-subtle 3s infinite ease-in-out;
         }
     </style>
     <script>
-        // Shim para evitar erro de 'process is not defined' no navegador
         window.process = {
             env: {
-                API_KEY: "" // O sistema injetará a chave aqui se disponível
+                API_KEY: ""
             }
         };
+
+        tailwind.config = {
+          theme: {
+            extend: {
+              animation: {
+                'fade-in': 'fadeIn 0.4s ease-out forwards',
+                'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                'scale-in': 'scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                'float': 'float 3s ease-in-out infinite',
+                'shimmer': 'shimmer 2s linear infinite',
+              },
+              keyframes: {
+                fadeIn: {
+                  'from': { opacity: '0' },
+                  'to': { opacity: '1' },
+                },
+                slideUp: {
+                  'from': { opacity: '0', transform: 'translateY(20px)' },
+                  'to': { opacity: '1', transform: 'translateY(0)' },
+                },
+                scaleIn: {
+                  'from': { opacity: '0', transform: 'scale(0.95)' },
+                  'to': { opacity: '1', transform: 'scale(1)' },
+                },
+                float: {
+                  '0%, 100%': { transform: 'translateY(0)' },
+                  '50%': { transform: 'translateY(-10px)' },
+                },
+                shimmer: {
+                  '0%': { backgroundPosition: '-1000px 0' },
+                  '100%': { backgroundPosition: '1000px 0' },
+                }
+              }
+            }
+          }
+        }
     </script>
 <script type="importmap">
 {
@@ -58,13 +113,12 @@
 <body>
     <div id="root"></div>
     <script type="module">
-        // Captura erros globais para exibir na tela se o app falhar ao iniciar
         window.addEventListener('error', function(e) {
             console.error('Erro de Execução:', e.error || e.message);
             const root = document.getElementById('root');
             if (root && root.innerHTML === "") {
                 root.innerHTML = `
-                    <div style="padding: 40px; text-align: center; font-family: sans-serif;">
+                    <div style="padding: 40px; text-align: center; font-family: sans-serif; color: white;">
                         <h2 style="color: #ef4444;">Ops! Ocorreu um erro ao iniciar</h2>
                         <p style="color: #94a3b8; margin-bottom: 20px;">${e.message}</p>
                         <button onclick="location.reload()" style="background: #6366f1; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
