@@ -24,6 +24,8 @@ interface DashboardProps {
   lang: Language;
 }
 
+const ADMIN_EMAILS = ["samuelribeiropassos@icloud.com", "cassiuspereirahector@gmail.com"];
+
 const translations = {
   pt: {
     welcome: "Bom dia,",
@@ -66,7 +68,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [savedStatus, setSavedStatus] = useState(false);
   const t = translations[lang];
 
-  const isAdmin = user.email === 'samuelribeiropassos@icloud.com';
+  const isAdmin = ADMIN_EMAILS.includes(user.email.toLowerCase().trim());
 
   const handleSave = () => {
     onUpdatePreferences(prefInput);

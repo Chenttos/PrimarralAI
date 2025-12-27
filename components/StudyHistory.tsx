@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { History, Book, ChevronRight, Trash2, Calendar, Search, ArrowLeft } from 'lucide-react';
+import { History, Book, ChevronRight, Trash2, Calendar, Search, ArrowLeft, Loader2 } from 'lucide-react';
 import { StudyHistoryEntry, Language } from '../types';
+import * as cloud from '../services/cloudStore';
 
 interface StudyHistoryProps {
   userEmail: string;
@@ -18,7 +19,8 @@ const translations = {
     empty: "Nenhum estudo salvo ainda.",
     searchPlaceholder: "Buscar por tópico...",
     deleteConfirm: "Remover este item?",
-    back: "Voltar para Início"
+    back: "Voltar para Início",
+    loading: "Buscando histórico na nuvem..."
   },
   en: {
     title: "Your History",
@@ -26,29 +28,35 @@ const translations = {
     empty: "No saved studies yet.",
     searchPlaceholder: "Search by topic...",
     deleteConfirm: "Remove this item?",
-    back: "Back to Home"
+    back: "Back to Home",
+    loading: "Fetching history from cloud..."
   }
 };
 
 const StudyHistory: React.FC<StudyHistoryProps> = ({ userEmail, onSelect, onBack, isDark, lang }) => {
   const [history, setHistory] = useState<StudyHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const t = translations[lang];
 
   useEffect(() => {
-    const historyKey = `primarral_history_${userEmail}`;
-    const saved = localStorage.getItem(historyKey);
-    if (saved) {
-      setHistory(JSON.parse(saved));
-    }
+    loadHistory();
   }, [userEmail]);
 
-  const deleteItem = (id: string, e: React.MouseEvent) => {
+  const loadHistory = async () => {
+    setLoading(true);
+    const data = await cloud.getGlobalHistory(userEmail);
+    setHistory(data);
+    setLoading(false);
+  };
+
+  const deleteItem = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const historyKey = `primarral_history_${userEmail}`;
-    const updated = history.filter(item => item.id !== id);
-    setHistory(updated);
-    localStorage.setItem(historyKey, JSON.stringify(updated));
+    if (window.confirm(t.deleteConfirm)) {
+      const updated = history.filter(item => item.id !== id);
+      setHistory(updated);
+      await cloud.saveGlobalHistory(userEmail, updated);
+    }
   };
 
   const filteredHistory = history.filter(item => 
@@ -92,7 +100,12 @@ const StudyHistory: React.FC<StudyHistoryProps> = ({ userEmail, onSelect, onBack
         </div>
       </div>
 
-      {filteredHistory.length === 0 ? (
+      {loading ? (
+        <div className="py-20 text-center">
+          <Loader2 className="w-10 h-10 animate-spin mx-auto text-indigo-500 mb-4" />
+          <p className="font-bold text-slate-500">{t.loading}</p>
+        </div>
+      ) : filteredHistory.length === 0 ? (
         <div className={`py-20 text-center rounded-3xl border-2 border-dashed ${isDark ? 'border-slate-800 text-slate-600' : 'border-slate-200 text-slate-400'}`}>
           <History className="w-12 h-12 mx-auto mb-4 opacity-20" />
           <p className="font-medium">{t.empty}</p>

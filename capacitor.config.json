@@ -6,9 +6,17 @@
   "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https",
-    "cleartext": true
+    "cleartext": true,
+    "allowNavigation": [
+      "*"
+    ]
   },
   "android": {
-    "allowMixedContent": true
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true,
+    "buildOptions": {
+      "releaseType": "APK"
+    }
   }
 }

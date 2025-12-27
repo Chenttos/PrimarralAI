@@ -1,6 +1,15 @@
 
 export type Language = 'pt' | 'en';
 
+export interface AppLog {
+  id: string;
+  timestamp: number;
+  type: 'error' | 'warn' | 'info' | 'ai';
+  message: string;
+  stack?: string;
+  details?: any;
+}
+
 export interface User {
   name: string;
   email: string;

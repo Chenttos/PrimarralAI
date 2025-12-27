@@ -321,19 +321,20 @@ const StudyResult: React.FC<StudyResultProps> = ({ files, textContent, analysis,
   );
 };
 
-/* FlashcardItem component using the RefreshCw icon */
 const FlashcardItem: React.FC<{ card: Flashcard; isDark?: boolean; lang: Language; index: number }> = ({ card, isDark, lang, index }) => {
   const [flipped, setFlipped] = useState(false);
   const t = translations[lang];
   return (
     <div onClick={() => setFlipped(!flipped)} style={{ animationDelay: `${index * 0.1}s` }} className="h-72 perspective-1000 cursor-pointer group animate-slide-up">
-      <div className={`relative w-full h-full transition-transform duration-700 transform-style-3d ${flipped ? 'rotate-y-180 shadow-2xl' : 'shadow-xl'} rounded-[2rem]`}>
-        <div className={`absolute inset-0 backface-hidden border-2 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center transition-all group-hover:border-indigo-500/50 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+      <div className={`relative w-full h-full transition-transform duration-700 transform-style-3d ${flipped ? 'rotate-y-180' : ''} rounded-[2rem]`}>
+        {/* Lado da Frente */}
+        <div className={`absolute inset-0 backface-hidden border-2 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center transition-all group-hover:border-indigo-500/50 shadow-sm z-10 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} ${flipped ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <div className="p-3 rounded-2xl bg-indigo-500/10 mb-6 group-hover:scale-125 transition-transform"><Layers className="w-8 h-8 text-indigo-500 opacity-80" /></div>
           <h4 className="text-xl font-black leading-tight tracking-tight">{card.front}</h4>
           <div className="absolute bottom-6 flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-indigo-500" /><p className="text-[10px] text-slate-500 uppercase tracking-widest font-black">{t.reveal}</p></div>
         </div>
-        <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-indigo-600 to-purple-700 border-2 border-indigo-600 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center rotate-y-180">
+        {/* Lado de Trás */}
+        <div className={`absolute inset-0 backface-hidden bg-gradient-to-br from-indigo-600 to-purple-700 border-2 border-indigo-600 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center rotate-y-180 z-0 ${flipped ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <p className="text-white text-xl font-bold leading-relaxed">{card.back}</p>
           <div className="absolute bottom-6 flex items-center gap-1.5"><RefreshCw className="w-3 h-3 text-white/50" /><p className="text-white/60 text-[10px] uppercase tracking-widest font-black">{t.backCard}</p></div>
         </div>
