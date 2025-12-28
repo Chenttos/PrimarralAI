@@ -1,7 +1,7 @@
 
-import React, { useEffect, useRef, useState } from 'react';
 import { GoogleGenAI, Modality } from '@google/genai';
-import { Mic, MicOff, PhoneOff, Loader2, Volume2, AlertCircle, PlayCircle, Settings, RefreshCw, ShieldAlert, Send, User, Bot, MessageSquareText } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { AlertCircle, Bot, Loader2, MessageSquareText, Mic, MicOff, PhoneOff, PlayCircle, RefreshCw, Send, ShieldAlert, Volume2 } from 'lucide-react';
 import { Language } from '../types';
 
 interface LiveTutorProps {
@@ -32,9 +32,10 @@ const translations = {
     textModeTitle: "Chat com Tutor",
     textModePlaceholder: "Tire sua dúvida sobre este tema...",
     sending: "IA pensando...",
-    micInstruction: "O sistema bloqueou o acesso ao áudio. Você pode tentar reiniciar o app ou continuar usando apenas texto abaixo.",
+    micInstruction: "O sistema bloqueou o acesso ao áudio. Você pode continuar usando apenas texto abaixo.",
     resetBtn: "Resetar App",
-    errorAuth: "Erro de Autenticação: Chave de API inválida."
+    errorAuth: "Erro de Autenticação: Chave de API inválida.",
+    errorChat: "Erro ao conectar com a IA. Tentando restabelecer..."
   },
   en: {
     preTitle: "AI Voice Tutor",
@@ -50,9 +51,10 @@ const translations = {
     textModeTitle: "Tutor Chat",
     textModePlaceholder: "Ask something about this topic...",
     sending: "AI thinking...",
-    micInstruction: "System blocked audio access. You can try restarting the app or continue using text below.",
+    micInstruction: "System blocked audio access. You can continue using text below.",
     resetBtn: "Reset App",
-    errorAuth: "Authentication Error: Invalid API Key."
+    errorAuth: "Authentication Error: Invalid API Key.",
+    errorChat: "Error connecting to AI. Trying to reconnect..."
   }
 };
 
@@ -61,11 +63,9 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
   const [isMuted, setIsMuted] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
-  // States para o modo Texto
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const chatInstanceRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -76,19 +76,22 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
 
   const t = translations[lang];
 
-  const getApiKey = () => process.env.API_KEY || (window as any).GEMINI_API_KEY;
+  const getAI = () => {
+    const windowKey = (window as any).GEMINI_API_KEY;
+    const envKey = process.env.API_KEY;
+    const apiKey = (windowKey && typeof windowKey === 'string' && windowKey.startsWith("AIza")) 
+      ? windowKey 
+      : envKey;
+    
+    if (!apiKey || apiKey === "") throw new Error("API_KEY_MISSING");
+    return new GoogleGenAI({ apiKey });
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
-
-  const hardReset = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.reload();
-  };
+  }, [messages, isSending]);
 
   const decode = (base64: string) => {
     try { return Uint8Array.from(atob(base64), c => c.charCodeAt(0)); } catch(e) { return new Uint8Array(0); }
@@ -101,59 +104,52 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
   };
 
   const startTextMode = () => {
-    const apiKey = getApiKey();
-    if (!apiKey || apiKey === "") {
-      setErrorMsg(t.errorAuth);
-      setSessionState('error');
-      return;
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
-    
-    chatInstanceRef.current = ai.chats.create({
-      model: 'gemini-3-flash-preview',
-      config: {
-        systemInstruction: `${t.sys} O tema da aula é: ${topic}. Contexto: ${context}`
-      }
-    });
-
-    setMessages([{ role: 'model', text: `Olá! Como o microfone está indisponível, vamos continuar por aqui. O que você gostaria de saber sobre "${topic}"?` }]);
+    setMessages([{ role: 'model', text: `Olá! Vamos estudar sobre "${topic}". Como posso te ajudar hoje?` }]);
     setSessionState('text');
   };
 
   const sendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!inputText.trim() || isSending || !chatInstanceRef.current) return;
+    if (!inputText.trim() || isSending) return;
 
     const userText = inputText.trim();
     setInputText("");
-    setMessages(prev => [...prev, { role: 'user', text: userText }]);
+    const newMessages: Message[] = [...messages, { role: 'user', text: userText }];
+    setMessages(newMessages);
     setIsSending(true);
 
     try {
-      const result = await chatInstanceRef.current.sendMessage({ message: userText });
-      setMessages(prev => [...prev, { role: 'model', text: result.text || "..." }]);
-    } catch (err) {
-      console.error(err);
-      setMessages(prev => [...prev, { role: 'model', text: "Erro ao conectar com a IA. Verifique sua internet." }]);
+      const ai = getAI();
+      // Gerenciamento manual do histórico para máxima estabilidade
+      const history = newMessages.map(m => ({
+        role: m.role,
+        parts: [{ text: m.text }]
+      }));
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: history,
+        config: {
+          systemInstruction: `${t.sys} O tema da aula é: ${topic}. Utilize este contexto se necessário: ${context}`
+        }
+      });
+
+      const modelText = response.text || "Desculpe, não consegui processar sua dúvida.";
+      setMessages(prev => [...prev, { role: 'model', text: modelText }]);
+    } catch (err: any) {
+      console.error("Chat Error:", err);
+      setMessages(prev => [...prev, { role: 'model', text: t.errorChat }]);
     } finally {
       setIsSending(false);
     }
   };
 
   const startSession = async () => {
-    const apiKey = getApiKey();
-    
-    if (!apiKey || apiKey === "") {
-      setErrorMsg(t.errorAuth);
-      setSessionState('error');
-      return;
-    }
-
     setSessionState('connecting');
     setErrorMsg(null);
 
     try {
+      const ai = getAI();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       
@@ -163,8 +159,6 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
       
       if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-      const ai = new GoogleGenAI({ apiKey });
-      
       sessionPromiseRef.current = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         config: {
@@ -216,15 +210,17 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
           },
           onclose: () => setSessionState('error'),
           onerror: (e) => {
-            console.error("Gemini Connection Error:", e);
+            console.error("Gemini Live Connection Error:", e);
             setSessionState('error');
           }
         }
       });
-
     } catch (err: any) {
-      console.error("Mic Error:", err);
-      setErrorMsg(t.errorMic);
+      if (err.message === "API_KEY_MISSING") {
+        setErrorMsg(t.errorAuth);
+      } else {
+        setErrorMsg(t.errorMic);
+      }
       setSessionState('error');
     }
   };
@@ -313,7 +309,7 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
                  <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}>
                     <div className={`max-w-[85%] p-4 rounded-2xl flex gap-3 ${m.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'}`}>
                       {m.role === 'model' && <Bot size={18} className="shrink-0 mt-1 text-indigo-400" />}
-                      <p className="text-sm font-medium leading-relaxed">{m.text}</p>
+                      <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{m.text}</p>
                     </div>
                  </div>
                ))}
@@ -332,7 +328,7 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
                  placeholder={t.textModePlaceholder}
                  className="flex-1 bg-slate-800 border-none rounded-xl px-4 py-3 text-white outline-none focus:ring-2 ring-indigo-500 transition-all"
                />
-               <button type="submit" className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all">
+               <button type="submit" disabled={isSending} className="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50">
                  <Send size={20} />
                </button>
             </form>
@@ -353,12 +349,7 @@ export const LiveTutor: React.FC<LiveTutorProps> = ({ context, topic, onClose, i
                 <MessageSquareText />
                 {t.switchToText}
               </button>
-              <div className="flex gap-2">
-                <button onClick={hardReset} className="flex-1 py-3 bg-slate-800 text-slate-400 rounded-xl font-bold flex items-center justify-center gap-2 text-sm">
-                  <RefreshCw size={14} /> {t.resetBtn}
-                </button>
-                <button onClick={onClose} className="flex-1 py-3 bg-slate-800 text-slate-400 rounded-xl font-bold text-sm">Voltar</button>
-              </div>
+              <button onClick={onClose} className="w-full py-3 bg-slate-800 text-slate-400 rounded-xl font-bold text-sm">Voltar</button>
             </div>
           </div>
         )}

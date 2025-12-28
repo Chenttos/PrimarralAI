@@ -3,7 +3,6 @@ import { User, StudyHistoryEntry, StoredAccount } from '../types';
 
 /**
  * CONFIGURAÇÃO DO SUPABASE (POSTGRESQL GRATUITO)
- * Insira suas credenciais do Supabase aqui ou no index.html
  */
 const getDbConfig = () => {
   const win = window as any;
@@ -29,11 +28,24 @@ const supabaseFetch = async (endpoint: string, options: RequestInit = {}) => {
   };
 
   const response = await fetch(`${url}/rest/v1/${endpoint}`, { ...options, headers });
+  
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Erro na conexão com Supabase");
+    const errorText = await response.text();
+    let errorMessage = "Erro na conexão com Supabase";
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.message || errorMessage;
+    } catch (e) {
+      errorMessage = errorText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
-  return response.json();
+
+  // Se o status for 204 (No Content), não tenta dar parse no JSON
+  if (response.status === 204) return null;
+
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 };
 
 /**
@@ -42,14 +54,14 @@ const supabaseFetch = async (endpoint: string, options: RequestInit = {}) => {
 export const getGlobalAccounts = async (): Promise<StoredAccount[]> => {
   if (isConfigured()) {
     try {
-      return await supabaseFetch('accounts?select=*');
+      const data = await supabaseFetch('accounts?select=*');
+      return data || [];
     } catch (e) {
       console.error("Supabase Error:", e);
       return [];
     }
   }
 
-  // Fallback Local
   const data = localStorage.getItem('primarral_global_cloud_db');
   return data ? JSON.parse(data) : [];
 };
@@ -111,6 +123,7 @@ export const getGlobalHistory = async (email: string): Promise<StudyHistoryEntry
   if (isConfigured()) {
     try {
       const rows = await supabaseFetch(`history?user_email=eq.${encodeURIComponent(email.toLowerCase())}&select=*&order=date.desc`);
+      if (!rows) return [];
       return rows.map((r: any) => ({
         ...r.data,
         id: r.id,
@@ -131,7 +144,7 @@ export const getGlobalHistory = async (email: string): Promise<StudyHistoryEntry
 
 export const saveGlobalHistory = async (email: string, history: StudyHistoryEntry[]): Promise<void> => {
   if (isConfigured() && history.length > 0) {
-    const latest = history[0]; // Salva o item mais recente no banco
+    const latest = history[0];
     await supabaseFetch('history', {
       method: 'POST',
       body: JSON.stringify({

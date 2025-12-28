@@ -62,6 +62,7 @@ const PointsManager: React.FC<PointsManagerProps> = ({ isOpen, onClose, points, 
   const isAdmin = userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase().trim());
 
   const packs = [
+    { points: 5, price: 0.1, label: "Econômico", popular: false },
     { points: 50, price: 5, label: "Iniciante", popular: false },
     { points: 150, price: 10, label: "Estudante", popular: true },
     { points: 500, price: 25, label: "Master", popular: false },
@@ -154,15 +155,15 @@ const PointsManager: React.FC<PointsManagerProps> = ({ isOpen, onClose, points, 
             )}
 
             {view === 'shop' && (
-              <div className="space-y-4 animate-slide-up">
+              <div className="space-y-4 animate-slide-up max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 {packs.map((pack) => (
                   <button 
                     key={pack.points} 
                     onClick={() => startPurchase(pack.price, pack.points)}
-                    className={`w-full p-5 rounded-3xl border-2 text-left flex items-center justify-between transition-all group hover:scale-[1.02] ${pack.popular ? 'border-indigo-500 bg-indigo-500/5 shadow-xl' : 'border-slate-800'}`}
+                    className={`w-full p-5 rounded-3xl border-2 text-left flex items-center justify-between transition-all group hover:scale-[1.02] ${pack.popular ? 'border-indigo-500 bg-indigo-500/5 shadow-xl' : isDark ? 'border-slate-800' : 'border-slate-100'}`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-2xl ${pack.popular ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-500 group-hover:bg-indigo-500 group-hover:text-white'}`}>
+                      <div className={`p-3 rounded-2xl ${pack.popular ? 'bg-indigo-600 text-white' : isDark ? 'bg-slate-800 text-slate-500 group-hover:bg-indigo-500 group-hover:text-white' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-500 group-hover:text-white'}`}>
                         <Zap size={24} />
                       </div>
                       <div>
@@ -174,12 +175,14 @@ const PointsManager: React.FC<PointsManagerProps> = ({ isOpen, onClose, points, 
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-black text-indigo-500">R$ {pack.price},00</p>
+                      <p className="text-sm font-black text-indigo-500">
+                        R$ {pack.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
                       <ArrowRight className="w-4 h-4 text-slate-700 ml-auto mt-1" />
                     </div>
                   </button>
                 ))}
-                <button onClick={() => setView('wallet')} className="w-full py-2 text-slate-500 font-bold text-xs">Voltar para Carteira</button>
+                <button onClick={() => setView('wallet')} className="w-full py-2 text-slate-500 font-bold text-xs mt-4">Voltar para Carteira</button>
               </div>
             )}
 
